@@ -1,0 +1,402 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Abstract Wallpaper Generator</title>
+    <style>
+        body {
+            margin: 0;
+            padding: 0;
+            background: radial-gradient(ellipse at center, #1a0d1f 0%, #0d0a12 100%);
+            overflow: hidden;
+            height: 100vh;
+            width: 100vw;
+            font-family: 'Courier New', monospace;
+        }
+        
+        canvas {
+            display: block;
+            width: 100%;
+            height: 100%;
+        }
+        
+        .controls {
+            position: fixed;
+            top: 20px;
+            left: 20px;
+            z-index: 100;
+            display: flex;
+            gap: 10px;
+        }
+        
+        .btn {
+            background: rgba(255, 0, 128, 0.2);
+            border: 1px solid #ff0080;
+            color: #ff0080;
+            padding: 8px 16px;
+            border-radius: 4px;
+            cursor: pointer;
+            font-family: 'Courier New', monospace;
+            font-size: 12px;
+            transition: all 0.3s ease;
+            backdrop-filter: blur(10px);
+        }
+        
+        .btn:hover {
+            background: rgba(255, 0, 128, 0.4);
+            box-shadow: 0 0 15px rgba(255, 0, 128, 0.5);
+        }
+        
+        .btn.active {
+            background: rgba(255, 0, 128, 0.6);
+            box-shadow: 0 0 20px rgba(255, 0, 128, 0.7);
+        }
+         select.btn {
+            appearance: none;
+            background-image: url("data:image/svg+xml;charset=utf-8,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 4 5'%3E%3Cpath fill='%23ff0080' d='M2 0L0 2h4zm0 5L0 3h4z'/%3E%3C/svg%3E");
+            background-repeat: no-repeat;
+            background-position: right 8px center;
+            background-size: 8px;
+            padding-right: 30px;
+        }
+    </style>
+</head>
+<body>
+    <div class="controls">
+        <button class="btn active" id="asciiBtn">ASCII Art</button>
+        <button class="btn" id="brushBtn">Brush Strokes</button>
+        <button class="btn" id="regenBtn">Regenerate</button>
+        <select class="btn" id="colorScheme">
+            <option value="neon">Neon Pink</option>
+            <option value="cyber">Cyber Blue</option>
+            <option value="fire">Fire Orange</option>
+            <option value="matrix">Matrix Green</option>
+            <option value="sunset">Sunset</option>
+            <option value="ocean">Ocean</option>
+        </select>
+        <button class="btn" id="exportBtn">Export PNG</button>
+    </div>
+    
+    <canvas id="canvas"></canvas>
+    
+    <script>
+        const canvas = document.getElementById('canvas');
+        const ctx = canvas.getContext('2d');
+        
+        let currentMode = 'ascii'; // 'ascii' or 'brush'
+        let currentColorScheme = 'neon';
+
+        // Button elements
+        const asciiBtn = document.getElementById('asciiBtn');
+        const brushBtn = document.getElementById('brushBtn');
+        const regenBtn = document.getElementById('regenBtn');
+        const exportBtn = document.getElementById('exportBtn');
+        const colorSchemeSelect = document.getElementById('colorScheme');
+
+         // Color schemes
+        const colorSchemes = {
+            neon: ['#ff0080', '#ff3399', '#cc00ff', '#9933ff', '#ff6bb3', '#b300ff', '#ff1493'],
+            cyber: ['#00ffff', '#0099ff', '#3366ff', '#6633ff', '#9900ff', '#cc00cc', '#ff0099'],
+            fire: ['#ff4500', '#ff6600', '#ff8800', '#ffaa00', '#ffcc00', '#ff9933', '#ff7722'],
+            matrix: ['#00ff00', '#33ff33', '#66ff66', '#99ff99', '#00cc00', '#00aa00', '#44ff44'],
+            sunset: ['#ff6b35', '#ff8e53', '#ffb347', '#ffd700', '#ff7f50', '#ff69b4', '#ff1493'],
+            ocean: ['#00bfff', '#1e90ff', '#4169e1', '#6495ed', '#87ceeb', '#00ced1', '#20b2aa']
+        };
+        
+        function getColors() {
+            return colorSchemes[currentColorScheme];
+        }
+
+        function resizeCanvas() {
+            canvas.width = window.innerWidth;
+            canvas.height = window.innerHeight;
+            drawArt();
+        }
+        
+        function drawArt() {
+            // Clear canvas with dark gradient background
+            const gradient = ctx.createRadialGradient(
+                canvas.width/2, canvas.height/2, 0,
+                canvas.width/2, canvas.height/2, Math.max(canvas.width, canvas.height)/2
+            );
+            gradient.addColorStop(0, '#1a0d1f');
+            gradient.addColorStop(1, '#0d0a12');
+            
+            ctx.fillStyle = gradient;
+            ctx.fillRect(0, 0, canvas.width, canvas.height);
+            
+            // Get current color scheme
+            const colors = getColors();
+            
+            if (currentMode === 'ascii') {
+                drawASCIIArt(colors);
+            } else {
+                drawBrushStrokes(colors);
+            }
+        }
+        
+        function drawASCIIArt(colors) {
+            // ASCII characters to use for the curves
+            const asciiChars = ['0', '1', '2', '3', '4', '5', '6', '7', '8', '9', 
+                               'A', 'B', 'C', 'D', 'E', 'F', 'G', 'H', 'I', 'J', 
+                               'K', 'L', 'M', 'N', 'O', 'P', 'Q', 'R', 'S', 'T', 
+                               'U', 'V', 'W', 'X', 'Y', 'Z', '@', '#', '$', '%', 
+                               '&', '*', '+', '=', '~', '^'];
+            
+            // Set font for ASCII characters
+            ctx.font = '8px Courier New';
+            ctx.textAlign = 'center';
+            ctx.textBaseline = 'middle';
+            
+            // Generate flowing ASCII curves
+            for (let i = 0; i < 35; i++) {
+                const color = colors[Math.floor(Math.random() * colors.length)];
+                
+                // Starting point
+                let x = Math.random() * canvas.width;
+                let y = Math.random() * canvas.height;
+                
+                // Create a flowing path
+                const pathPoints = [];
+                const segments = 8 + Math.floor(Math.random() * 40);
+                
+                for (let j = 0; j < segments; j++) {
+                    pathPoints.push({x: x, y: y});
+                    
+                    // Move to next point with some randomness
+                    x += (Math.random() - 0.5) * 120;
+                    y += (Math.random() - 0.5) * 120;
+                    
+                    // Keep within canvas bounds (with some padding)
+                    x = Math.max(50, Math.min(canvas.width - 50, x));
+                    y = Math.max(50, Math.min(canvas.height - 50, y));
+                }
+                
+                // Draw ASCII characters along the path
+                for (let j = 0; j < pathPoints.length - 1; j++) {
+                    const point1 = pathPoints[j];
+                    const point2 = pathPoints[j + 1];
+                    
+                    // Calculate distance and steps between points
+                    const dx = point2.x - point1.x;
+                    const dy = point2.y - point1.y;
+                    const distance = Math.sqrt(dx * dx + dy * dy);
+                    const steps = Math.floor(distance / 10); // Character spacing
+                    
+                    for (let k = 0; k <= steps; k++) {
+                        const t = k / steps;
+                        const charX = point1.x + dx * t;
+                        const charY = point1.y + dy * t;
+                        
+                        // Random character
+                        const char = asciiChars[Math.floor(Math.random() * asciiChars.length)];
+                        
+                        // Glow effect
+                        ctx.shadowColor = color;
+                        ctx.shadowBlur = 15;
+                        ctx.fillStyle = color;
+                        
+                        // Add some random rotation and scale variation
+                        ctx.save();
+                        ctx.translate(charX, charY);
+                        ctx.rotate((Math.random() - 0.5) * 0.4);
+                        ctx.scale(0.8 + Math.random() * 0.6, 0.8 + Math.random() * 0.6);
+                        
+                        ctx.fillText(char, 0, 0);
+                        
+                        // Secondary glow
+                        ctx.shadowBlur = 25;
+                        ctx.globalAlpha = 0.4;
+                        ctx.fillText(char, 0, 0);
+                        
+                        ctx.restore();
+                        ctx.globalAlpha = 1;
+                        ctx.shadowBlur = 0;
+                    }
+                }
+            }
+            
+            // Add smaller accent ASCII patterns
+            for (let i = 0; i < 20; i++) {
+                const color = colors[Math.floor(Math.random() * colors.length)];
+                
+                let x = Math.random() * canvas.width;
+                let y = Math.random() * canvas.height;
+                
+                ctx.font = '6px Courier New';
+                
+                // Create shorter curved patterns
+                const pathPoints = [];
+                const segments = 4 + Math.floor(Math.random() * 6);
+                
+                for (let j = 0; j < segments; j++) {
+                    pathPoints.push({x: x, y: y});
+                    x += (Math.random() - 0.5) * 80;
+                    y += (Math.random() - 0.5) * 80;
+                    x = Math.max(30, Math.min(canvas.width - 30, x));
+                    y = Math.max(30, Math.min(canvas.height - 30, y));
+                }
+                
+                for (let j = 0; j < pathPoints.length - 1; j++) {
+                    const point1 = pathPoints[j];
+                    const point2 = pathPoints[j + 1];
+                    
+                    const dx = point2.x - point1.x;
+                    const dy = point2.y - point1.y;
+                    const distance = Math.sqrt(dx * dx + dy * dy);
+                    const steps = Math.floor(distance / 12);
+                    
+                    for (let k = 0; k <= steps; k++) {
+                        const t = k / steps;
+                        const charX = point1.x + dx * t;
+                        const charY = point1.y + dy * t;
+                        
+                        const char = asciiChars[Math.floor(Math.random() * asciiChars.length)];
+                        
+                        ctx.shadowColor = color;
+                        ctx.shadowBlur = 10;
+                        ctx.fillStyle = color;
+                        ctx.globalAlpha = 0.7;
+                        
+                        ctx.save();
+                        ctx.translate(charX, charY);
+                        ctx.rotate((Math.random() - 0.5) * 0.3);
+                        ctx.scale(0.7 + Math.random() * 0.4, 0.7 + Math.random() * 0.4);
+                        
+                        ctx.fillText(char, 0, 0);
+                        ctx.restore();
+                        
+                        ctx.globalAlpha = 1;
+                        ctx.shadowBlur = 0;
+                    }
+                }
+            }
+        }
+        
+        function drawBrushStrokes(colors) {
+            // Draw flowing brush strokes
+            for (let i = 0; i < 15; i++) {
+                ctx.beginPath();
+                
+                // Random starting point
+                let x = Math.random() * canvas.width;
+                let y = Math.random() * canvas.height;
+                
+                // Random color with glow effect
+                const color = colors[Math.floor(Math.random() * colors.length)];
+                
+                // Create glow effect
+                ctx.shadowColor = color;
+                ctx.shadowBlur = 20;
+                ctx.strokeStyle = color;
+                ctx.lineWidth = 8 + Math.random() * 12; // Medium thickness variation
+                ctx.lineCap = 'round';
+                ctx.lineJoin = 'round';
+                
+                ctx.moveTo(x, y);
+                
+                // Create flowing curves
+                const segments = 5 + Math.floor(Math.random() * 8);
+                for (let j = 0; j < segments; j++) {
+                    const controlX1 = x + (Math.random() - 0.5) * 200;
+                    const controlY1 = y + (Math.random() - 0.5) * 200;
+                    const controlX2 = x + (Math.random() - 0.5) * 300;
+                    const controlY2 = y + (Math.random() - 0.5) * 300;
+                    
+                    x += (Math.random() - 0.5) * 400;
+                    y += (Math.random() - 0.5) * 400;
+                    
+                    ctx.bezierCurveTo(controlX1, controlY1, controlX2, controlY2, x, y);
+                }
+                
+                ctx.stroke();
+                
+                // Add secondary glow
+                ctx.shadowBlur = 40;
+                ctx.globalAlpha = 0.3;
+                ctx.stroke();
+                
+                ctx.globalAlpha = 1;
+                ctx.shadowBlur = 0;
+            }
+            
+            // Add some smaller accent strokes
+            for (let i = 0; i < 8; i++) {
+                ctx.beginPath();
+                
+                let x = Math.random() * canvas.width;
+                let y = Math.random() * canvas.height;
+                
+                const color = colors[Math.floor(Math.random() * colors.length)];
+                ctx.shadowColor = color;
+                ctx.shadowBlur = 15;
+                ctx.strokeStyle = color;
+                ctx.lineWidth = 3 + Math.random() * 6;
+                ctx.lineCap = 'round';
+                
+                ctx.moveTo(x, y);
+                
+                // Shorter, more delicate strokes
+                const segments = 2 + Math.floor(Math.random() * 4);
+                for (let j = 0; j < segments; j++) {
+                    const controlX1 = x + (Math.random() - 0.5) * 100;
+                    const controlY1 = y + (Math.random() - 0.5) * 100;
+                    const controlX2 = x + (Math.random() - 0.5) * 150;
+                    const controlY2 = y + (Math.random() - 0.5) * 150;
+                    
+                    x += (Math.random() - 0.5) * 200;
+                    y += (Math.random() - 0.5) * 200;
+                    
+                    ctx.bezierCurveTo(controlX1, controlY1, controlX2, controlY2, x, y);
+                }
+                
+                ctx.globalAlpha = 0.8;
+                ctx.stroke();
+                ctx.globalAlpha = 1;
+                ctx.shadowBlur = 0;
+            }
+        }
+        
+        // Button event listeners
+        asciiBtn.addEventListener('click', () => {
+            currentMode = 'ascii';
+            asciiBtn.classList.add('active');
+            brushBtn.classList.remove('active');
+            drawArt();
+        });
+        
+        brushBtn.addEventListener('click', () => {
+            currentMode = 'brush';
+            brushBtn.classList.add('active');
+            asciiBtn.classList.remove('active');
+            drawArt();
+        });
+        
+        regenBtn.addEventListener('click', () => {
+            drawArt();
+        });
+
+        exportBtn.addEventListener('click', () => {
+            const link = document.createElement('a');
+            link.download = 'abstract-art.png';
+            link.href = canvas.toDataURL('image/png');
+            link.click();
+        });
+           
+        colorSchemeSelect.addEventListener('change', (e) => {
+            currentColorScheme = e.target.value;
+            drawArt();
+        });
+        
+        // Initial draw
+        resizeCanvas();
+        
+        // Redraw on window resize
+        window.addEventListener('resize', resizeCanvas);
+        
+        // Optional: Click canvas to regenerate
+        canvas.addEventListener('click', drawArt);
+    </script>
+</body>
+</html>
