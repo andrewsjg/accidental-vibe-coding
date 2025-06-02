@@ -60,6 +60,48 @@
             background-size: 8px;
             padding-right: 30px;
         }
+
+        .slider-container {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            gap: 10px;
+        }
+        .slider {
+            width: 200px;
+            height: 8px;
+            -webkit-appearance: none;
+            background: rgba(255, 0, 128, 0.2);
+            border-radius: 4px;
+            outline: none;
+            transition: background 0.3s ease;
+        }
+
+        .slider::-webkit-slider-thumb {
+            -webkit-appearance: none;
+            width: 16px;
+            height: 16px;
+            border-radius: 50%;
+            background: #ff0080;
+            cursor: pointer;
+            box-shadow: 0 0 10px rgba(255, 0, 128, 0.5);
+        }
+
+        .slider::-moz-range-thumb {
+            width: 16px;
+            height: 16px;
+            border-radius: 50%;
+            background: #ff0080;
+            cursor: pointer;
+            border: none;
+            box-shadow: 0 0 10px rgba(255, 0, 128, 0.5);
+        }
+
+        .slider-label {
+            color: #c3bfc1;
+            font-family: 'Courier New', monospace;
+            font-size: 14px;
+        }
     </style>
 </head>
 <body>
@@ -75,6 +117,10 @@
             <option value="sunset">Sunset</option>
             <option value="ocean">Ocean</option>
         </select>
+        <div class="slider-container">
+            <label for="densitySlider" class="slider-label">Density</label>
+            <input type="range" id="densitySlider" class="slider" min="0.3" max="2" step="0.1" value="1">
+        </div>
         <button class="btn" id="exportBtn">Export PNG</button>
     </div>
     
@@ -86,6 +132,7 @@
         
         let currentMode = 'ascii'; // 'ascii' or 'brush'
         let currentColorScheme = 'neon';
+        let density = 1;
 
         // Button elements
         const asciiBtn = document.getElementById('asciiBtn');
@@ -93,6 +140,7 @@
         const regenBtn = document.getElementById('regenBtn');
         const exportBtn = document.getElementById('exportBtn');
         const colorSchemeSelect = document.getElementById('colorScheme');
+        const densitySlider = document.getElementById('densitySlider');
 
          // Color schemes
         const colorSchemes = {
@@ -150,7 +198,7 @@
             ctx.textBaseline = 'middle';
             
             // Generate flowing ASCII curves
-            for (let i = 0; i < 35; i++) {
+            for (let i = 0; i < 35 * density; i++) {
                 const color = colors[Math.floor(Math.random() * colors.length)];
                 
                 // Starting point
@@ -218,7 +266,7 @@
             }
             
             // Add smaller accent ASCII patterns
-            for (let i = 0; i < 20; i++) {
+            for (let i = 0; i < 20 * density; i++) {
                 const color = colors[Math.floor(Math.random() * colors.length)];
                 
                 let x = Math.random() * canvas.width;
@@ -276,7 +324,7 @@
         
         function drawBrushStrokes(colors) {
             // Draw flowing brush strokes
-            for (let i = 0; i < 15; i++) {
+            for (let i = 0; i < 15 * density; i++) {
                 ctx.beginPath();
                 
                 // Random starting point
@@ -322,7 +370,7 @@
             }
             
             // Add some smaller accent strokes
-            for (let i = 0; i < 8; i++) {
+            for (let i = 0; i < 8 * density; i++) {
                 ctx.beginPath();
                 
                 let x = Math.random() * canvas.width;
@@ -386,6 +434,11 @@
            
         colorSchemeSelect.addEventListener('change', (e) => {
             currentColorScheme = e.target.value;
+            drawArt();
+        });
+
+        densitySlider.addEventListener('input', (e) => {
+            density = e.target.value;
             drawArt();
         });
         
